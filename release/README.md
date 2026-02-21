@@ -134,3 +134,8 @@ Theme: Mind control, attraction, manipulation, and aggro misdirection.
 | 68 | Captivation | Shield | Mobs looking directly at your shield have their attack damage reduced by 40%. | Glow squid ink particles. |
 | 69 | Lover's Sacrifice | Leggings | Automatically intercepts and takes lethal damage meant for your tamed wolves/cats/parrots. | Damage indicator hearts. |
 | 70 | Intoxicating Strike | Sword | Hits randomly scramble the target's camera pitch and yaw (requires custom packet manipulation). | Nausea spirals. |
+
+
+## 📞 Contact
+If you have any questions, issues, or want to discuss this plugin further, feel free to contact me directly on Discord:
+**`jjiu_.`**
