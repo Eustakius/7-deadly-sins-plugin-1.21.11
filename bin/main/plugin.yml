@@ -1,9 +1,0 @@
-name: SevenDeadlySins
-version: '1.0'
-main: com.seven.deadlysins.SevenDeadlySins
-api-version: '1.21'
-commands:
-  7sins:
-    description: Apply Custom Enchantments
-    usage: /<command> give <player> <enchant> [level]
-    aliases: [sins]
