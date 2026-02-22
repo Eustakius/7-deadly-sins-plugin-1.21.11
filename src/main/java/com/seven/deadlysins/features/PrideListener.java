@@ -3,11 +3,11 @@ package com.seven.deadlysins.features;
 import com.seven.deadlysins.SevenDeadlySins;
 import com.seven.deadlysins.registry.CustomEnchant;
 import com.seven.deadlysins.utils.PdcUtil;
+import com.seven.deadlysins.utils.VisualUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -69,12 +69,20 @@ public class PrideListener implements Listener {
                                 push.normalize().multiply(0.5);
                                 push.setY(0.2);
                                 e.setVelocity(push);
+
+                                // Synergy: Impact Stagnation
+                                NamespacedKey chillKey = new NamespacedKey(plugin, "status_chilled");
+                                if (PdcUtil.isOnCooldown(e, chillKey)) {
+                                    ((LivingEntity) e).damage(4.0, player);
+                                    player.sendMessage("§c§lSYNERGY: §eImpact Stagnation triggered!");
+                                    VisualUtil.playVisual(e.getLocation(), null, CustomEnchant.YAWNING_CHASM, 0.5);
+                                }
                             }
                         }
                     });
                     if (Math.random() < 0.2) {
-                        player.getWorld().spawnParticle(Particle.CLOUD, player.getLocation().add(0, 0.5, 0), 2, 1, 0.2,
-                                1, 0.05);
+                        VisualUtil.playVisual(player.getLocation().add(0, 0.5, 0), null, CustomEnchant.REGAL_PRESENCE,
+                                1.0);
                     }
                 }
 
@@ -85,22 +93,23 @@ public class PrideListener implements Listener {
                     if (CustomEnchant.UNBOWED.getLevel(boots) > 0) {
                         boolean hasMod = false;
                         for (AttributeModifier mod : kbResist.getModifiers()) {
-                            if (mod.getKey().equals(unbowedModKey))
+                            if (mod.getName().equals("unbowed_kb_res")) // Use getName() for comparisons if key is
+                                                                        // name-based or check mod.getKey()
                                 hasMod = true;
                         }
                         if (!hasMod) {
                             kbResist.addModifier(
-                                    new AttributeModifier(unbowedModKey, 1.0, AttributeModifier.Operation.ADD_NUMBER));
+                                    new AttributeModifier(unbowedModKey, 1.0,
+                                            AttributeModifier.Operation.ADD_NUMBER));
                         }
                         // Remove slowness
                         if (player.hasPotionEffect(PotionEffectType.SLOWNESS)) {
                             player.removePotionEffect(PotionEffectType.SLOWNESS);
-                            player.getWorld().spawnParticle(Particle.ITEM_SLIME, player.getLocation().add(0, 1, 0), 10,
-                                    0.5, 0.5, 0.5, 0);
+                            VisualUtil.playVisual(player.getLocation().add(0, 1, 0), null, CustomEnchant.UNBOWED, 1.0);
                         }
                     } else {
                         for (AttributeModifier mod : kbResist.getModifiers()) {
-                            if (mod.getKey().equals(unbowedModKey)) {
+                            if (mod.getName().equals("unbowed_kb_res")) {
                                 kbResist.removeModifier(mod);
                             }
                         }
@@ -125,22 +134,23 @@ public class PrideListener implements Listener {
 
                     boolean hasSoliMod = false;
                     for (AttributeModifier mod : atkSpeed.getModifiers()) {
-                        if (mod.getKey().equals(solitaryModKey))
+                        if (mod.getName().equals("solitary_atk_spd"))
                             hasSoliMod = true;
                     }
 
                     if (isSolitary && !hasSoliMod) {
                         atkSpeed.addModifier(
-                                new AttributeModifier(solitaryModKey, 0.5, AttributeModifier.Operation.ADD_SCALAR));
+                                new AttributeModifier(solitaryModKey, 0.5,
+                                        AttributeModifier.Operation.ADD_SCALAR));
                     } else if (!isSolitary && hasSoliMod) {
                         for (AttributeModifier mod : atkSpeed.getModifiers()) {
-                            if (mod.getKey().equals(solitaryModKey))
+                            if (mod.getName().equals("solitary_atk_spd"))
                                 atkSpeed.removeModifier(mod);
                         }
                     }
                     if (isSolitary && Math.random() < 0.1) {
-                        player.getWorld().spawnParticle(Particle.GLOW, player.getLocation().add(0, 1, 0), 3, 0.5, 0.5,
-                                0.5, 0);
+                        VisualUtil.playVisual(player.getLocation().add(0, 1, 0), null, CustomEnchant.SOLITARY_MONARCH,
+                                1.0);
                     }
                 }
             }
@@ -164,8 +174,7 @@ public class PrideListener implements Listener {
                     PdcUtil.setCooldown(player, invulnKey, 3000L); // 3 seconds invuln
 
                     player.getWorld().playSound(player.getLocation(), Sound.ITEM_TOTEM_USE, 1f, 1f);
-                    player.getWorld().spawnParticle(Particle.TOTEM_OF_UNDYING, player.getLocation().add(0, 1, 0), 50,
-                            0.5, 0.5, 0.5, 0.1);
+                    VisualUtil.playVisual(player.getLocation().add(0, 1, 0), null, CustomEnchant.KINGS_RESURGENCE, 1.0);
                     return;
                 }
             }
@@ -194,8 +203,7 @@ public class PrideListener implements Listener {
                 double trueDamage = attackerMaxHp * 0.10 * crownLevel;
                 // Pure true damage
                 attacker.setHealth(Math.max(0, attacker.getHealth() - trueDamage));
-                target.getWorld().spawnParticle(Particle.CRIT, attacker.getLocation().add(0, 1, 0), 10, 0.3, 0.3, 0.3,
-                        0.1);
+                VisualUtil.playVisual(attacker.getLocation().add(0, 1, 0), null, CustomEnchant.CROWN_OF_THORNS, 1.0);
             }
 
             // 16. Arrogant Parry
@@ -206,12 +214,10 @@ public class PrideListener implements Listener {
             if (parryLevel > 0 && Math.random() < (0.15 * parryLevel)) {
                 event.setCancelled(true);
                 target.getWorld().playSound(target.getLocation(), Sound.ITEM_SHIELD_BLOCK, 1f, 1.5f);
-                target.getWorld().spawnParticle(Particle.ASH, target.getLocation().add(0, 1, 0), 30, 0.5, 0.5, 0.5,
-                        0.1);
+                VisualUtil.playVisual(target.getLocation().add(0, 1, 0), null, CustomEnchant.ARROGANT_PARRY, 1.0);
 
                 if (event.getDamager() instanceof LivingEntity attacker) {
                     attacker.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 9)); // Slowness 10
-                                                                                                  // (amplifier 9)
                 }
                 return;
             }
@@ -242,7 +248,7 @@ public class PrideListener implements Listener {
             int champLevel = CustomEnchant.CHAMPIONS_CHALLENGE.getLevel(bow);
             if (champLevel > 0 && event.getEntity() instanceof Mob mob) {
                 mob.setTarget(shooter);
-                mob.getWorld().spawnParticle(Particle.END_ROD, mob.getLocation().add(0, 2, 0), 5, 0.1, 0.1, 0.1, 0.05);
+                VisualUtil.playVisual(mob.getLocation().add(0, 2, 0), null, CustomEnchant.CHAMPIONS_CHALLENGE, 1.0);
             }
         }
     }
@@ -265,12 +271,9 @@ public class PrideListener implements Listener {
             RayTraceResult result = player.getWorld().rayTraceEntities(eyeLoc, dir, reach, 0.5,
                     e -> e instanceof LivingEntity && !e.equals(player));
             if (result != null && result.getHitEntity() instanceof LivingEntity target) {
-                // Ignore if it's within pure vanilla reach to prevent double hitting.
-                // Pure vanilla reach is heavily ping dependent, but roughly 3.0.
                 if (eyeLoc.distance(target.getLocation()) > 3.0) {
                     player.attack(target); // Force attack
-                    player.getWorld().spawnParticle(Particle.SWEEP_ATTACK, target.getLocation().add(0, 1, 0), 2, 0.5,
-                            0.5, 0.5, 0);
+                    VisualUtil.playVisual(target.getLocation().add(0, 1, 0), dir, CustomEnchant.SOVEREIGNS_REACH, 1.0);
                 }
             }
         }
@@ -286,8 +289,8 @@ public class PrideListener implements Listener {
 
             if (gildedLevel > 0 && Math.random() < (0.2 * gildedLevel)) {
                 event.getDrops().add(new ItemStack(Material.GOLD_NUGGET, 1 + (int) (Math.random() * 3)));
-                killer.getWorld().spawnParticle(Particle.BLOCK, event.getEntity().getLocation().add(0, 0.5, 0), 10, 0.3,
-                        0.3, 0.3, Bukkit.createBlockData(Material.GOLD_BLOCK));
+                VisualUtil.playVisual(event.getEntity().getLocation().add(0, 0.5, 0), null,
+                        CustomEnchant.GILDED_EXECUTION, 1.0);
             }
         }
     }
@@ -317,13 +320,12 @@ public class PrideListener implements Listener {
 
         // 20. Royal Decree
         int decreeLevel = CustomEnchant.ROYAL_DECREE.getLevel(bow);
-        if (decreeLevel > 0 && arrow.isCritical()) { // Fully charged = critical arrow usually
+        if (decreeLevel > 0 && arrow.isCritical()) {
             Location hitLoc = event.getHitEntity() != null ? event.getHitEntity().getLocation()
                     : (event.getHitBlock() != null ? event.getHitBlock().getLocation() : arrow.getLocation());
 
-            // Strike lightning structurally (no fire spawned natively using effect)
             hitLoc.getWorld().strikeLightningEffect(hitLoc);
-            hitLoc.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, hitLoc, 30, 2, 2, 2, 0.5);
+            VisualUtil.playVisual(hitLoc, null, CustomEnchant.ROYAL_DECREE, 1.0);
 
             hitLoc.getWorld().getNearbyEntities(hitLoc, 5, 5, 5).forEach(e -> {
                 if (e instanceof LivingEntity le && !e.equals(shooter)) {

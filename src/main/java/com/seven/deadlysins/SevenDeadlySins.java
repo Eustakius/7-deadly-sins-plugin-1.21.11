@@ -2,6 +2,8 @@ package com.seven.deadlysins;
 
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.command.PluginCommand;
+import com.github.retrooper.packetevents.PacketEvents;
+import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
 
 public final class SevenDeadlySins extends JavaPlugin {
 
@@ -10,10 +12,13 @@ public final class SevenDeadlySins extends JavaPlugin {
     @Override
     public void onLoad() {
         instance = this;
+        PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this));
+        PacketEvents.getAPI().load();
     }
 
     @Override
     public void onEnable() {
+        PacketEvents.getAPI().init();
         // Plugin startup logic
         getLogger().info("7 Deadly Sins custom enchantments plugin is starting...");
         getServer().getPluginManager().registerEvents(new com.seven.deadlysins.features.WrathListener(this), this);
@@ -26,6 +31,8 @@ public final class SevenDeadlySins extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new com.seven.deadlysins.features.LootGenerationListener(this),
                 this);
         getServer().getPluginManager().registerEvents(new com.seven.deadlysins.features.AnvilListener(), this);
+        getServer().getPluginManager().registerEvents(new com.seven.deadlysins.features.AcquisitionListener(this),
+                this);
 
         com.seven.deadlysins.commands.SinsCommand cmd = new com.seven.deadlysins.commands.SinsCommand();
         PluginCommand pluginCommand = getCommand("7sins");
@@ -40,6 +47,7 @@ public final class SevenDeadlySins extends JavaPlugin {
     @Override
     public void onDisable() {
         // Plugin shutdown logic
+        PacketEvents.getAPI().terminate();
         getLogger().info("7 Deadly Sins disabled.");
     }
 

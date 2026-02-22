@@ -3,11 +3,11 @@ package com.seven.deadlysins.features;
 import com.seven.deadlysins.SevenDeadlySins;
 import com.seven.deadlysins.registry.CustomEnchant;
 import com.seven.deadlysins.utils.PdcUtil;
+import com.seven.deadlysins.utils.VisualUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -58,7 +58,7 @@ public class GreedListener implements Listener {
                 if (maxHp != null) {
                     // Remove old mod
                     for (AttributeModifier mod : maxHp.getModifiers()) {
-                        if (mod.getKey().equals(hoarderModKey)) {
+                        if (mod.getName().equals("hoarders_vit")) {
                             maxHp.removeModifier(mod);
                         }
                     }
@@ -76,11 +76,12 @@ public class GreedListener implements Listener {
                         // Limit to extra +20 HP (10 hearts) max, 0.1 HP per valuable
                         double bonus = Math.min(20.0, count * 0.1 * hoarderLevel);
                         maxHp.addModifier(
-                                new AttributeModifier(hoarderModKey, bonus, AttributeModifier.Operation.ADD_NUMBER));
+                                new AttributeModifier(hoarderModKey, bonus,
+                                        AttributeModifier.Operation.ADD_NUMBER));
 
                         if (Math.random() < 0.05 && bonus > 0) {
-                            player.getWorld().spawnParticle(Particle.HEART, player.getLocation().add(0, 1, 0), 1, 0.5,
-                                    0.5, 0.5);
+                            VisualUtil.playVisual(player.getLocation().add(0, 1, 0), null,
+                                    CustomEnchant.HOARDERS_VITALITY, 1.0);
                         } // Custom recolor to yellow would require ParticleBuilder/API which was left out
                           // of standard imports for simplicity
                     } else if (player.getHealth() > maxHp.getValue()) {
@@ -110,7 +111,7 @@ public class GreedListener implements Listener {
                         Vector dir = nearestChest.getLocation().toVector().subtract(player.getLocation().toVector())
                                 .normalize();
                         Location particleLoc = player.getEyeLocation().add(dir.multiply(1.5));
-                        player.getWorld().spawnParticle(Particle.END_ROD, particleLoc, 1, 0, 0, 0, 0);
+                        VisualUtil.playVisual(particleLoc, new Vector(0, 1, 0), CustomEnchant.TREASURE_HUNTER, 1.0);
                     }
                 }
             }
@@ -133,8 +134,7 @@ public class GreedListener implements Listener {
                     int stealAmt = Math.min(pTarget.getTotalExperience(), 5 * highwayLevel);
                     pTarget.giveExp(-stealAmt);
                     attacker.giveExp(stealAmt);
-                    target.getWorld().spawnParticle(Particle.HAPPY_VILLAGER, target.getLocation().add(0, 1, 0), 5, 0.5,
-                            0.5, 0.5, 0);
+                    VisualUtil.playVisual(target.getLocation().add(0, 1, 0), null, CustomEnchant.HIGHWAYMANS_TOLL, 1.0);
                 }
             }
 
@@ -146,8 +146,8 @@ public class GreedListener implements Listener {
                     target.getWorld().dropItemNaturally(target.getLocation(), targetItem.clone());
                     target.getEquipment().setItemInMainHand(null);
                     target.getWorld().playSound(target.getLocation(), Sound.ENTITY_ITEM_BREAK, 1f, 1f);
-                    target.getWorld().spawnParticle(Particle.ENCHANT, target.getLocation().add(0, 1, 0), 10, 0.5, 0.5,
-                            0.5, 0.1);
+                    VisualUtil.playVisual(target.getLocation().add(0, 1, 0), null, CustomEnchant.PLUNDERERS_STRIKE,
+                            1.0);
                 }
             }
 
@@ -164,8 +164,8 @@ public class GreedListener implements Listener {
                 }
                 if (hasHighTier) {
                     event.setDamage(event.getDamage() + (3.0 * mercenaryLevel));
-                    target.getWorld().spawnParticle(Particle.BLOCK, target.getLocation().add(0, 1, 0), 5, 0.3, 0.3, 0.3,
-                            Bukkit.createBlockData(Material.EMERALD_BLOCK));
+                    VisualUtil.playVisual(target.getLocation().add(0, 1, 0), null, CustomEnchant.MERCENARYS_FORTUNE,
+                            1.0);
                 }
             }
 
@@ -185,8 +185,8 @@ public class GreedListener implements Listener {
                         if (attacker.getInventory().addItem(stolen).isEmpty()) {
                             attacker.sendMessage("§eStole " + stolen.getType() + " from " + pTarget.getName() + "!");
                             pTarget.sendMessage("§cYou were pickpocketed!");
-                            target.getWorld().spawnParticle(Particle.SMOKE, target.getLocation().add(0, 1, 0), 10, 0.2,
-                                    0.2, 0.2, 0.05);
+                            VisualUtil.playVisual(target.getLocation().add(0, 1, 0), null, CustomEnchant.PICKPOCKET,
+                                    1.0);
                         } else {
                             // Give it back if inventory full
                             pTarget.getInventory().setItem(slot, stolen);
@@ -222,8 +222,8 @@ public class GreedListener implements Listener {
                         event.setCancelled(true);
                         player.setHealth(
                                 Math.max(1.0, player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue() * 0.2));
-                        player.getWorld().spawnParticle(Particle.DRAGON_BREATH, player.getLocation().add(0, 1, 0), 30,
-                                0.5, 0.5, 0.5, 0.1);
+                        VisualUtil.playVisual(player.getLocation().add(0, 1, 0), null, CustomEnchant.DRAGONS_HOARD,
+                                1.0);
                         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 0.5f, 2f);
                     }
                 }
@@ -240,8 +240,7 @@ public class GreedListener implements Listener {
             int extLevel = CustomEnchant.EXTORTION.getLevel(bow);
             if (extLevel > 0 && event.getHitEntity() instanceof Player target) {
                 PdcUtil.setCooldown(target, extortionKey, 5000L); // 5s lockdown
-                target.getWorld().spawnParticle(Particle.BLOCK, target.getLocation().add(0, 2, 0), 10, 0.3, 0.3, 0.3,
-                        Bukkit.createBlockData(Material.BARRIER));
+                VisualUtil.playVisual(target.getLocation().add(0, 2, 0), null, CustomEnchant.EXTORTION, 1.0);
                 target.sendMessage("§cYour inventory has been locked by Extortion!");
             }
         }
@@ -271,8 +270,8 @@ public class GreedListener implements Listener {
 
             event.getBlock().getWorld().dropItemNaturally(event.getBlock().getLocation().add(0.5, 0.5, 0.5),
                     new ItemStack(drop, yield));
-            event.getBlock().getWorld().spawnParticle(Particle.END_ROD,
-                    event.getBlock().getLocation().add(0.5, 0.5, 0.5), 10, 0.5, 0.5, 0.5, 0.1);
+            VisualUtil.playVisual(event.getBlock().getLocation().add(0.5, 0.5, 0.5), null, CustomEnchant.MIDAS_TOUCH,
+                    1.0);
         }
 
         // 30. Usury
@@ -286,8 +285,7 @@ public class GreedListener implements Listener {
                     event.getBlock().getWorld().dropItemNaturally(event.getBlock().getLocation(), drop);
                 }
                 tool.damage(5, player); // Costs durability
-                event.getBlock().getWorld().spawnParticle(Particle.HAPPY_VILLAGER, event.getBlock().getLocation(), 5,
-                        0.5, 0.5, 0.5);
+                VisualUtil.playVisual(event.getBlock().getLocation(), null, CustomEnchant.USURY, 1.0);
             }
         }
     }

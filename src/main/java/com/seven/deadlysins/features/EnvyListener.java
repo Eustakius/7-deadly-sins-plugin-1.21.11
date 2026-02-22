@@ -3,11 +3,12 @@ package com.seven.deadlysins.features;
 import com.seven.deadlysins.SevenDeadlySins;
 import com.seven.deadlysins.registry.CustomEnchant;
 import com.seven.deadlysins.utils.PdcUtil;
+import com.seven.deadlysins.utils.VisualUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Particle;
+
 import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.ArmorStand;
@@ -81,7 +82,7 @@ public class EnvyListener implements Listener {
                         // Spawn eye particle vectors (subtle ender signal / spell near their head)
                         if (Math.random() < 0.2) {
                             Location eyeCenter = target.getEyeLocation().add(0, 0.5, 0);
-                            player.getWorld().spawnParticle(Particle.MYCELIUM, eyeCenter, 5, 0.2, 0.1, 0.2, 0);
+                            VisualUtil.playVisual(eyeCenter, null, CustomEnchant.GREEN_EYED_GLARE, 1.0);
                         }
                     }
                 }
@@ -109,7 +110,7 @@ public class EnvyListener implements Listener {
 
                     pVictim.teleport(origin.clone().add(knockback));
                     pVictim.getWorld().playSound(origin, Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 1f);
-                    pVictim.getWorld().spawnParticle(Particle.EXPLOSION, origin.add(0, 1, 0), 2);
+                    VisualUtil.playVisual(origin.add(0, 1, 0), null, CustomEnchant.FALSE_IDOL, 1.0);
 
                     // Spawn Dummy
                     ArmorStand dummy = pVictim.getWorld().spawn(origin, ArmorStand.class, as -> {
@@ -161,8 +162,7 @@ public class EnvyListener implements Listener {
                             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                                 pVictim.getPersistentDataContainer().remove(mimicKey);
                             }, 200L);
-                            pVictim.getWorld().spawnParticle(Particle.PORTAL, pVictim.getLocation().add(0, 1, 0), 20,
-                                    0.5, 0.5, 0.5, 0.2);
+                            VisualUtil.playVisual(pVictim.getLocation(), null, CustomEnchant.MIMICRY, 1.0);
                         }
                     }
                 }
@@ -178,8 +178,8 @@ public class EnvyListener implements Listener {
                             : 0;
                     if (theirMaxHp > myMaxHp) {
                         event.setDamage(event.getDamage() * 1.30); // Deals +30% damage
-                        victim.getWorld().spawnParticle(Particle.SQUID_INK, victim.getLocation().add(0, 1, 0), 10, 0.3,
-                                0.3, 0.3, 0);
+                        VisualUtil.playVisual(victim.getLocation().add(0, 1, 0), null, CustomEnchant.USURPERS_BLADE,
+                                1.0);
                     }
                 }
 
@@ -192,9 +192,13 @@ public class EnvyListener implements Listener {
                         if (isPositiveEffect(type)) {
                             victim.removePotionEffect(type);
                             attacker.addPotionEffect(effect);
-                            attacker.getWorld().spawnParticle(Particle.ENTITY_EFFECT,
-                                    attacker.getLocation().add(0, 1, 0),
-                                    10, 0.5, 0.5, 0.5, 1, org.bukkit.Color.fromRGB(0, 255, 0)); // Green spell
+
+                            // Synergy: Thief's Fortune
+                            com.seven.deadlysins.logic.SynergyManager.evaluateSynergy(attacker, victim,
+                                    com.seven.deadlysins.logic.SynergyManager.SynergyType.THIEFS_FORTUNE, 0);
+
+                            VisualUtil.playVisual(attacker.getLocation().add(0, 1, 0),
+                                    attacker.getLocation().getDirection(), CustomEnchant.THIEF_OF_BUFFS, 1.0);
                             break; // Just steal one
                         }
                     }
@@ -207,8 +211,8 @@ public class EnvyListener implements Listener {
                         for (ItemStack armor : victim.getEquipment().getArmorContents()) {
                             if (armor != null && !armor.getType().isAir()) {
                                 armor.damage(2 * sabotageLevel, attacker); // 2x normal rate extra damage
-                                victim.getWorld().spawnParticle(Particle.BLOCK, victim.getLocation().add(0, 1, 0), 3,
-                                        0.2, 0.2, 0.2, Bukkit.createBlockData(Material.IRON_BLOCK));
+                                VisualUtil.playVisual(victim.getLocation().add(0, 1, 0), null,
+                                        CustomEnchant.SPITEFUL_SABOTAGE, 1.0);
                             }
                         }
                     }
@@ -220,8 +224,8 @@ public class EnvyListener implements Listener {
                     Bukkit.getScheduler().runTaskLater(plugin, () -> {
                         if (!victim.isDead()) {
                             victim.damage(event.getFinalDamage()); // Direct damage copy
-                            victim.getWorld().spawnParticle(Particle.SWEEP_ATTACK, victim.getLocation().add(0, 1, 0),
-                                    1);
+                            VisualUtil.playVisual(victim.getLocation().add(0, 1, 0), null, CustomEnchant.DOPPELGANGER,
+                                    1.0);
                         }
                     }, 5L); // split-second later (0.25s)
                 }
@@ -276,15 +280,8 @@ public class EnvyListener implements Listener {
                 if (nearest != null) {
                     nearest.damage(reduced);
 
-                    // Draw tether vector
                     Vector dir = nearest.getLocation().toVector().subtract(player.getLocation().toVector());
-                    double dist = dir.length();
-                    dir.normalize();
-                    for (double i = 0; i < dist; i += 0.5) {
-                        Location point = player.getLocation().add(0, 1, 0).add(dir.clone().multiply(i));
-                        player.getWorld().spawnParticle(Particle.DUST, point, 1, 0, 0, 0, 0,
-                                new Particle.DustOptions(org.bukkit.Color.PURPLE, 0.8f));
-                    }
+                    VisualUtil.playVisual(player.getLocation(), dir, CustomEnchant.PARASITIC_LINK, 1.0);
                 }
             }
         }
@@ -301,7 +298,7 @@ public class EnvyListener implements Listener {
                 Location hitLoc = event.getHitEntity() != null ? event.getHitEntity().getLocation()
                         : (event.getHitBlock() != null ? event.getHitBlock().getLocation() : arrow.getLocation());
 
-                hitLoc.getWorld().spawnParticle(Particle.WITCH, hitLoc, 20, 0.5, 0.5, 0.5, 0.1);
+                VisualUtil.playVisual(hitLoc, null, CustomEnchant.SHADOW_CLONE, 1.0);
                 ArmorStand clone = hitLoc.getWorld().spawn(hitLoc, ArmorStand.class, as -> {
                     as.setInvisible(true);
                     as.getEquipment().setArmorContents(shooter.getEquipment().getArmorContents());
@@ -365,8 +362,7 @@ public class EnvyListener implements Listener {
 
                         Location loc = target.getLocation().add(0, 1, 0);
                         Vector dir = fisher.getLocation().toVector().subtract(loc.toVector()).normalize();
-                        target.getWorld().spawnParticle(Particle.SPLASH, loc, 30, dir.getX(), dir.getY(), dir.getZ(),
-                                0.5); // Reverse splash
+                        VisualUtil.playVisual(loc, dir, CustomEnchant.COVETOUS_PULL, 1.0);
                     } else {
                         // Inventory full, give it back or drop
                         target.getWorld().dropItemNaturally(target.getLocation(), stolen);

@@ -2,12 +2,11 @@ package com.seven.deadlysins.features;
 
 import com.seven.deadlysins.SevenDeadlySins;
 import com.seven.deadlysins.registry.CustomEnchant;
-import com.seven.deadlysins.utils.ParticleUtil;
+import com.seven.deadlysins.utils.VisualUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -81,7 +80,7 @@ public class SlothListener implements Listener {
                 AttributeInstance armor = player.getAttribute(Attribute.GENERIC_ARMOR);
                 if (armor != null) {
                     for (AttributeModifier mod : armor.getModifiers()) {
-                        if (mod.getKey().equals(inertiaModKey))
+                        if (mod.getName().equals("inertia_resist"))
                             armor.removeModifier(mod);
                     }
 
@@ -93,8 +92,8 @@ public class SlothListener implements Listener {
                             armor.addModifier(new AttributeModifier(inertiaModKey, bonus,
                                     AttributeModifier.Operation.ADD_NUMBER));
                             if (Math.random() < 0.1) {
-                                player.getWorld().spawnParticle(Particle.BUBBLE_COLUMN_UP,
-                                        player.getLocation().add(0, 0.5, 0), 2, 0.5, 0.5, 0.5, 0);
+                                VisualUtil.playVisual(player.getLocation().add(0, 0.5, 0), null, CustomEnchant.INERTIA,
+                                        1.0);
                             }
                         }
                     }
@@ -118,8 +117,8 @@ public class SlothListener implements Listener {
                         else
                             delayedDamage.put(player.getUniqueId(), pool);
 
-                        player.getWorld().spawnParticle(Particle.FALLING_DUST, player.getLocation().add(0, 2, 0), 5,
-                                0.2, 0.1, 0.2, Bukkit.createBlockData(Material.SAND));
+                        VisualUtil.playVisual(player.getLocation().add(0, 2, 0), null, CustomEnchant.PROCRASTINATION,
+                                1.0);
                     }
                 }
             }
@@ -175,8 +174,7 @@ public class SlothListener implements Listener {
                 int apathyLevel = CustomEnchant.APATHY.getLevel(shield);
                 if (apathyLevel > 0 && event.getDamager() instanceof LivingEntity attacker) {
                     attacker.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 40, 0));
-                    pVictim.getWorld().spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, pVictim.getLocation().add(0, 1, 0),
-                            10, 0.5, 0.5, 0.5, 0.02);
+                    VisualUtil.playVisual(pVictim.getLocation().add(0, 1, 0), null, CustomEnchant.APATHY, 1.0);
                     // Nullify knockback handled by the system since blocking natively does it
                     // mostly,
                     // but we can ensure it by removing velocity post tick.
@@ -190,8 +188,8 @@ public class SlothListener implements Listener {
                     if (blockTime < 300) { // Perfect parry window (0.3s)
                         event.setCancelled(true);
                         pVictim.getWorld().playSound(pVictim.getLocation(), Sound.BLOCK_GLASS_BREAK, 1f, 2f);
-                        pVictim.getWorld().spawnParticle(Particle.GLOW, pVictim.getLocation().add(0, 1, 0), 20, 0.5,
-                                0.5, 0.5, 0);
+                        VisualUtil.playVisual(pVictim.getLocation().add(0, 1, 0), null, CustomEnchant.TIME_DILATION,
+                                1.0);
 
                         if (event.getDamager() instanceof LivingEntity attacker) {
                             // Freeze attacker
@@ -218,7 +216,7 @@ public class SlothListener implements Listener {
                                 AttributeModifier.Operation.ADD_SCALAR);
                         boolean hasMod = false;
                         for (AttributeModifier m : atkSpd.getModifiers()) {
-                            if (m.getKey().equals(lethargyModKey)) {
+                            if (m.getName().equals("lethargy_fatigue")) {
                                 hasMod = true;
                                 break;
                             }
@@ -229,13 +227,12 @@ public class SlothListener implements Listener {
                         // Remove after 3 seconds
                         Bukkit.getScheduler().runTaskLater(plugin, () -> {
                             for (AttributeModifier m : atkSpd.getModifiers()) {
-                                if (m.getKey().equals(lethargyModKey))
+                                if (m.getName().equals("lethargy_fatigue"))
                                     atkSpd.removeModifier(m);
                             }
                         }, 60L);
 
-                        victim.getWorld().spawnParticle(Particle.BLOCK, victim.getLocation().add(0, 1, 0), 10, 0.5, 0.5,
-                                0.5, Bukkit.createBlockData(Material.COBWEB));
+                        VisualUtil.playVisual(victim.getLocation().add(0, 1, 0), null, CustomEnchant.LETHARGY, 1.0);
                     }
                 }
 
@@ -245,8 +242,7 @@ public class SlothListener implements Listener {
                     victim.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, 60, -128)); // Prevent jump 3s
                     Vector v = victim.getVelocity();
                     victim.setVelocity(v.setY(v.getY() - 0.5)); // Smite downwards
-                    victim.getWorld().spawnParticle(Particle.FALLING_DUST, victim.getLocation().add(0, 2, 0), 10, 0.5,
-                            0.2, 0.5, Bukkit.createBlockData(Material.ANVIL));
+                    VisualUtil.playVisual(victim.getLocation().add(0, 2, 0), null, CustomEnchant.HEAVY_BURDEN, 1.0);
                 }
 
                 // 57. Somnolence
@@ -259,8 +255,7 @@ public class SlothListener implements Listener {
                         victim.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 40, 10)); // Prevent
                                                                                                            // interact
                                                                                                            // effectively
-                        victim.getWorld().spawnParticle(Particle.WITCH, victim.getLocation().add(0, 2, 0), 5, 0.2, 0.2,
-                                0.2, 0); // Zzz
+                        VisualUtil.playVisual(victim.getLocation().add(0, 2, 0), null, CustomEnchant.SOMNOLENCE, 1.0);
                     }
                 }
             }
@@ -281,7 +276,7 @@ public class SlothListener implements Listener {
                 Bukkit.getScheduler().runTaskTimer(plugin, task -> {
                     if (task.getTaskId() % 60 == 0)
                         task.cancel(); // 3s lifespan
-                    hitLoc.getWorld().spawnParticle(Particle.CLOUD, hitLoc, 50, 2, 2, 2, 0);
+                    VisualUtil.playVisual(hitLoc, null, CustomEnchant.YAWNING_CHASM, 1.0);
                     hitLoc.getWorld().getNearbyEntities(hitLoc, 4, 4, 4).forEach(e -> {
                         if (e instanceof LivingEntity le && !e.equals(shooter)) {
                             // Reduce velocity drastically
@@ -289,8 +284,8 @@ public class SlothListener implements Listener {
                             le.setVelocity(v.multiply(0.1));
 
                             // Visual cue
-                            le.getWorld().spawnParticle(Particle.DUST, le.getLocation().add(0, 1, 0), 2, 0.3, 0.3, 0.3,
-                                    new Particle.DustOptions(org.bukkit.Color.BLUE, 1f));
+                            VisualUtil.playVisual(le.getLocation().add(0, 1, 0), null, CustomEnchant.YAWNING_CHASM,
+                                    1.0);
                         }
                     });
                 }, 0L, 5L); // tick quickly
@@ -307,11 +302,14 @@ public class SlothListener implements Listener {
         int sluggardLevel = CustomEnchant.SLUGGARDS_PACE.getLevel(boots);
         if (sluggardLevel > 0 && player.isSprinting() && event.getFrom().distanceSquared(event.getTo()) > 0) {
             Location loc = player.getLocation();
-            loc.getWorld().spawnParticle(Particle.ITEM_SNOWBALL, loc, 5, 0.3, 0.1, 0.3, 0);
+            VisualUtil.playVisual(loc, null, CustomEnchant.SLUGGARDS_PACE, 1.0);
 
             loc.getWorld().getNearbyEntities(loc, 1.5, 1.5, 1.5).forEach(e -> {
                 if (e instanceof LivingEntity le && !e.equals(player)) {
                     le.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 3)); // Slowness IV
+                    // Synergy: Status Chilled
+                    NamespacedKey chillKey = new NamespacedKey(plugin, "status_chilled");
+                    com.seven.deadlysins.utils.PdcUtil.setCooldown(le, chillKey, 40 * 50L); // 2 seconds
                 }
             });
         }
@@ -341,7 +339,7 @@ public class SlothListener implements Listener {
                         player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 100, 4)); // Immune to
                                                                                                        // damage
                                                                                                        // basically
-                        ParticleUtil.spawnCircle(player.getLocation(), Particle.SNOWFLAKE, 1.5, 20);
+                        VisualUtil.playVisual(player.getLocation(), null, CustomEnchant.HIBERNATION, 1.0);
                         player.getWorld().playSound(player.getLocation(), Sound.BLOCK_SNOW_PLACE, 1f, 1f);
                     }
                 }, 60L);

@@ -2,17 +2,15 @@ package com.seven.deadlysins.features;
 
 import com.seven.deadlysins.SevenDeadlySins;
 import com.seven.deadlysins.registry.CustomEnchant;
-import com.seven.deadlysins.utils.ParticleUtil;
-import com.seven.deadlysins.utils.PdcUtil;
+import com.seven.deadlysins.utils.VisualUtil;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Arrow;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -100,8 +98,7 @@ public class WrathListener implements Listener {
                 if (missingHp > 0) {
                     double multiplier = 1.0 + Math.log10(1 + (missingHp * berserkerLevel * 0.5));
                     event.setDamage(event.getDamage() * multiplier);
-                    target.getWorld().spawnParticle(Particle.DUST, attacker.getLocation().add(0, 1, 0), 10, 0.3, 0.3,
-                            0.3, new Particle.DustOptions(org.bukkit.Color.RED, 1.0f));
+                    VisualUtil.playVisual(attacker.getLocation(), null, CustomEnchant.BERSERKERS_RAGE, 1.0);
                 }
             }
 
@@ -111,7 +108,7 @@ public class WrathListener implements Listener {
                 if (target instanceof Player pTarget && pTarget.isBlocking()) {
                     event.setDamage(event.getDamage() * 3.0);
                     target.getWorld().playSound(target.getLocation(), Sound.BLOCK_ANVIL_BREAK, 1f, 1f);
-                    ParticleUtil.spawnCircle(target.getLocation().add(0, 1, 0), Particle.CRIT, 1.5, 20);
+                    VisualUtil.playVisual(target.getLocation().add(0, 1, 0), null, CustomEnchant.SIEGE_BREAKER, 1.0);
 
                     // Break shield durability massively
                     ItemStack shield = pTarget.getInventory().getItemInOffHand();
@@ -143,8 +140,8 @@ public class WrathListener implements Listener {
                     double multi = 1.0 + (stacks * 0.1 * duelistLevel);
                     event.setDamage(event.getDamage() * multi);
 
-                    target.getWorld().spawnParticle(Particle.CRIT, target.getLocation().add(0, 1, 0), 5 * stacks, 0.5,
-                            0.5, 0.5, 0.1);
+                    VisualUtil.playVisual(target.getLocation().add(0, 1, 0),
+                            attacker.getLocation().getDirection(), CustomEnchant.DUELISTS_SPITE, 1.5);
                 } else {
                     duelistTarget.put(aId, tId);
                     duelistStacks.put(aId, 0); // Reset
@@ -162,25 +159,25 @@ public class WrathListener implements Listener {
                     attacker.getPersistentDataContainer().remove(storedDamageKey);
 
                     event.setDamage(event.getDamage() + (storedDamage * 2.0));
-                    target.getWorld().spawnParticle(Particle.ANGRY_VILLAGER, attacker.getLocation().add(0, 2, 0), 3,
-                            0.5, 0.5, 0.5);
+                    VisualUtil.playVisual(attacker.getLocation().add(0, 1, 0), null, CustomEnchant.VENGEANCE_STRIKE,
+                            1.0);
                 }
             }
 
             // 10. Mutilation
             int mutilationLevel = CustomEnchant.MUTILATION.getLevel(weapon);
             if (mutilationLevel > 0) {
-                mutilatedEntities.put(target.getUniqueId(), System.currentTimeMillis() + (mutilationLevel * 3000L)); // 9s
-                                                                                                                     // max
+                NamespacedKey bleedKey = new NamespacedKey(plugin, "status_bleeding");
+                com.seven.deadlysins.utils.PdcUtil.setCooldown(target, bleedKey, mutilationLevel * 3000L);
+
                 // Start DoT loop
                 Bukkit.getScheduler().runTaskTimer(plugin, task -> {
-                    if (target.isDead() || !mutilatedEntities.containsKey(target.getUniqueId())) {
+                    if (target.isDead() || !com.seven.deadlysins.utils.PdcUtil.isOnCooldown(target, bleedKey)) {
                         task.cancel();
                         return;
                     }
                     target.damage(1.0); // True damage DoT
-                    target.getWorld().spawnParticle(Particle.DUST, target.getLocation().add(0, 1, 0), 3, 0.2, 0.2, 0.2,
-                            new Particle.DustOptions(org.bukkit.Color.RED, 1.0f));
+                    VisualUtil.playVisual(target.getLocation().add(0, 1, 0), null, CustomEnchant.MUTILATION, 1.0);
                 }, 10L, 20L); // every second
             }
         }
@@ -219,7 +216,7 @@ public class WrathListener implements Listener {
         }
 
         target.setHealth(0.0);
-        ParticleUtil.drawBloodEagleWings(target.getLocation());
+        VisualUtil.playVisual(target.getLocation(), null, CustomEnchant.BLOOD_EAGLE, 1.0);
         target.getWorld().playSound(target.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 1f, 0.5f);
     }
 
@@ -249,7 +246,7 @@ public class WrathListener implements Listener {
                     if (task.getTaskId() > 100)
                         task.cancel(); // basic kill condition placeholder
                     // Draw fire
-                    ParticleUtil.drawHellfireZone(hitLoc, 1.5);
+                    VisualUtil.playVisual(hitLoc, null, CustomEnchant.HELLFIRE_TREBUCHET, 1.0);
                     // Damage nearby
                     hitLoc.getWorld().getNearbyEntities(hitLoc, 1.5, 1.5, 1.5).forEach(e -> {
                         if (e instanceof LivingEntity le && !e.equals(shooter)) {
@@ -270,8 +267,7 @@ public class WrathListener implements Listener {
 
             // Visual iron bars
             Location startLoc = target.getLocation();
-            target.getWorld().spawnParticle(Particle.BLOCK, startLoc.add(0, 1, 0), 50, 0.5, 1, 0.5,
-                    Bukkit.createBlockData(Material.IRON_BARS));
+            VisualUtil.playVisual(startLoc.add(0, 1, 0), new Vector(0, -1, 0), CustomEnchant.IMPALER, 1.0);
         }
     }
 
@@ -291,7 +287,7 @@ public class WrathListener implements Listener {
                     }
                 });
                 killer.getWorld().playSound(killer.getLocation(), Sound.ENTITY_WARDEN_SONIC_BOOM, 1f, 1f);
-                killer.getWorld().spawnParticle(Particle.SONIC_BOOM, killer.getLocation().add(0, 1, 0), 1);
+                VisualUtil.playVisual(killer.getLocation().add(0, 1, 0), null, CustomEnchant.WARLORDS_CRY, 1.0);
             }
         }
     }
@@ -308,8 +304,7 @@ public class WrathListener implements Listener {
         if (scorchedLevel > 0) {
             Location loc = player.getLocation();
             if (Math.random() > 0.6) {
-                loc.getWorld().spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, loc, 1, 0, 0.1, 0, 0);
-                loc.getWorld().spawnParticle(Particle.FLAME, loc, 2, 0.2, 0.1, 0.2, 0.02);
+                VisualUtil.playVisual(loc, null, CustomEnchant.SCORCHED_EARTH, 1.0);
             }
 
             // Apply fire to nearby non-player entities directly behind them
@@ -324,7 +319,8 @@ public class WrathListener implements Listener {
     @EventHandler
     public void onHealthRegen(EntityRegainHealthEvent event) {
         // 10. Mutilation anti-heal
-        if (mutilatedEntities.containsKey(event.getEntity().getUniqueId())) {
+        NamespacedKey bleedKey = new NamespacedKey(plugin, "status_bleeding");
+        if (com.seven.deadlysins.utils.PdcUtil.isOnCooldown(event.getEntity(), bleedKey)) {
             event.setAmount(event.getAmount() * 0.5); // 50% healing reduction
         }
     }

@@ -65,11 +65,13 @@ public class AnvilListener implements Listener {
             customCost += (entry.getValue() * 4); // 4 levels of XP cost per custom enchant level
         }
 
+        org.bukkit.inventory.view.AnvilView anvilView = (org.bukkit.inventory.view.AnvilView) event.getView();
+
         // Fix repairing mechanic naming (Vanilla Anvil behavior)
-        if (inv.getRenameText() != null && !inv.getRenameText().isEmpty()) {
+        if (anvilView.getRenameText() != null && !anvilView.getRenameText().isEmpty()) {
             ItemMeta resMeta = result.getItemMeta();
             if (resMeta != null) {
-                resMeta.setDisplayName(inv.getRenameText());
+                resMeta.setDisplayName(anvilView.getRenameText());
                 result.setItemMeta(resMeta);
                 customCost += 1; // standard rename cost
             }
@@ -80,7 +82,7 @@ public class AnvilListener implements Listener {
 
         // Increase the repair cost slightly to charge the player XP for applying custom
         // enchants
-        int finalCost = inv.getRepairCost() + customCost;
+        int finalCost = anvilView.getRepairCost() + customCost;
         if (finalCost < 1)
             finalCost = 1;
 
@@ -89,7 +91,7 @@ public class AnvilListener implements Listener {
         final int fc = finalCost;
         org.bukkit.Bukkit.getScheduler().runTask(com.seven.deadlysins.SevenDeadlySins.getInstance(), () -> {
             if (event.getView().getPlayer() != null) {
-                inv.setRepairCost(fc);
+                anvilView.setRepairCost(fc);
             }
         });
     }

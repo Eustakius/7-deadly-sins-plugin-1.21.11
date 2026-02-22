@@ -3,22 +3,26 @@ package com.seven.deadlysins.features;
 import com.seven.deadlysins.SevenDeadlySins;
 import com.seven.deadlysins.registry.CustomEnchant;
 import com.seven.deadlysins.utils.PdcUtil;
+import com.seven.deadlysins.utils.VisualUtil;
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
-import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Tameable;
+import com.github.retrooper.packetevents.PacketEvents;
+import com.github.retrooper.packetevents.protocol.player.UserProfile;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSpawnPlayer;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerPlayerInfo;
+import com.github.retrooper.packetevents.protocol.player.GameMode;
+import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -26,7 +30,6 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
@@ -55,24 +58,20 @@ public class LustListener implements Listener {
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             long now = System.currentTimeMillis();
 
-            // Bloodlust unequip cleanup
-            for (Player p : Bukkit.getOnlinePlayers()) {
-                ItemStack weapon = p.getInventory().getItemInMainHand();
-                if (CustomEnchant.BLOODLUST.getLevel(weapon) == 0 && bloodlustStacks.containsKey(p.getUniqueId())) {
-                    bloodlustStacks.remove(p.getUniqueId());
-                    bloodlustExpiry.remove(p.getUniqueId());
-                    removeBloodlust(p);
+            for (Map.Entry<UUID, Long> entry : new HashMap<>(bloodlustExpiry).entrySet()) {
+                if (now > entry.getValue()) {
+                    bloodlustStacks.remove(entry.getKey());
+                    bloodlustExpiry.remove(entry.getKey());
                 }
             }
 
-            for (Map.Entry<UUID, Long> entry : new HashMap<>(bloodlustExpiry).entrySet()) {
-                if (now > entry.getValue()) {
-                    Player p = Bukkit.getPlayer(entry.getKey());
-                    if (p != null) {
-                        bloodlustStacks.remove(p.getUniqueId());
-                        removeBloodlust(p);
-                    }
-                    bloodlustExpiry.remove(entry.getKey());
+            // Bloodlust unequip and orphan cleanup
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                ItemStack weapon = p.getInventory().getItemInMainHand();
+                if (CustomEnchant.BLOODLUST.getLevel(weapon) == 0 || !bloodlustExpiry.containsKey(p.getUniqueId())) {
+                    bloodlustStacks.remove(p.getUniqueId());
+                    bloodlustExpiry.remove(p.getUniqueId());
+                    removeBloodlust(p);
                 }
             }
         }, 20L, 20L);
@@ -82,14 +81,14 @@ public class LustListener implements Listener {
         AttributeInstance speed = p.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED);
         if (speed != null) {
             for (AttributeModifier m : speed.getModifiers()) {
-                if (m.getKey().equals(bloodlustSpeedKey))
+                if (m.getName().equals("bloodlust_speed_mod"))
                     speed.removeModifier(m);
             }
         }
         AttributeInstance atk = p.getAttribute(Attribute.GENERIC_ATTACK_SPEED);
         if (atk != null) {
             for (AttributeModifier m : atk.getModifiers()) {
-                if (m.getKey().equals(bloodlustAtkKey))
+                if (m.getName().equals("bloodlust_atk_mod"))
                     atk.removeModifier(m);
             }
         }
@@ -123,8 +122,7 @@ public class LustListener implements Listener {
                             AttributeModifier.Operation.ADD_SCALAR));
                 }
 
-                attacker.getWorld().spawnParticle(Particle.CHERRY_LEAVES, attacker.getLocation().add(0, 1, 0), 5, 0.5,
-                        0.5, 0.5, 0);
+                VisualUtil.playVisual(attacker.getLocation().add(0, 1, 0), null, CustomEnchant.BLOODLUST, 1.0);
             }
 
             // 63. Succubus Kiss (Axe)
@@ -136,8 +134,8 @@ public class LustListener implements Listener {
                         pVictim.giveExp(-steal);
                         attacker.setHealth(Math.min(attacker.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue(),
                                 attacker.getHealth() + (steal * 0.5)));
-                        victim.getWorld().spawnParticle(Particle.HEART, victim.getLocation().add(0, 1, 0), 5, 0.5, 0.5,
-                                0.5, 0);
+                        VisualUtil.playVisual(victim.getLocation().add(0, 1, 0), null, CustomEnchant.SUCCUBUS_KISS,
+                                1.0);
                     }
                 }
             }
@@ -145,12 +143,24 @@ public class LustListener implements Listener {
             // 64. Fatal Attraction (Sword)
             int fatalLevel = CustomEnchant.FATAL_ATTRACTION.getLevel(weapon);
             if (fatalLevel > 0) {
-                Location cent = attacker.getLocation();
-                cent.getWorld().spawnParticle(Particle.REVERSE_PORTAL, cent.add(0, 1, 0), 30, 0.5, 0.5, 0.5, 0.5);
+                org.bukkit.Location cent = attacker.getLocation();
+                org.bukkit.Location visualLoc = cent.clone().add(0, 1, 0);
+                VisualUtil.playVisual(visualLoc, null, CustomEnchant.FATAL_ATTRACTION, 1.0);
                 cent.getWorld().getNearbyEntities(cent, 4, 4, 4).forEach(e -> {
                     if (e instanceof LivingEntity && !e.equals(attacker)) {
+                        double pullPower = 0.4;
+                        // Synergy: Frenzied Attraction
+                        if (CustomEnchant.BERSERKERS_RAGE.getLevel(attacker.getInventory().getItemInMainHand()) > 0) {
+                            pullPower = com.seven.deadlysins.logic.SynergyManager.evaluateSynergy(attacker,
+                                    (LivingEntity) e,
+                                    com.seven.deadlysins.logic.SynergyManager.SynergyType.FRENZIED_ATTRACTION,
+                                    pullPower);
+                            if (Math.random() < 0.1)
+                                attacker.sendMessage("§c§lSYNERGY: §dFrenzied Attraction pulse!");
+                        }
+
                         Vector pull = attacker.getLocation().toVector().subtract(e.getLocation().toVector()).normalize()
-                                .multiply(0.4);
+                                .multiply(pullPower);
                         if (e.getLocation().distanceSquared(attacker.getLocation()) > 1.0) {
                             e.setVelocity(e.getVelocity().add(pull));
                         }
@@ -161,12 +171,16 @@ public class LustListener implements Listener {
             // 70. Intoxicating Strike (Sword)
             int intoxLevel = CustomEnchant.INTOXICATING_STRIKE.getLevel(weapon);
             if (intoxLevel > 0 && victim instanceof Player pVictim && Math.random() < 0.2 * intoxLevel) {
-                Location scrambled = pVictim.getLocation();
+                org.bukkit.Location scrambled = pVictim.getLocation();
                 scrambled.setYaw((float) (Math.random() * 360));
                 scrambled.setPitch((float) ((Math.random() * 180) - 90));
-                pVictim.teleport(scrambled);
-                pVictim.getWorld().spawnParticle(Particle.ENTITY_EFFECT, pVictim.getLocation().add(0, 1, 0), 20,
-                        0.5, 0.5, 0.5, 1, org.bukkit.Color.PURPLE);
+
+                com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerPlayerPositionAndLook rotationPacket = new com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerPlayerPositionAndLook(
+                        scrambled.getX(), scrambled.getY(), scrambled.getZ(),
+                        scrambled.getYaw(), scrambled.getPitch(), (byte) 0, 0, true);
+                PacketEvents.getAPI().getPlayerManager().sendPacket(pVictim, rotationPacket);
+
+                VisualUtil.playVisual(pVictim.getLocation().add(0, 1, 0), null, CustomEnchant.INTOXICATING_STRIKE, 1.0);
             }
         }
 
@@ -182,8 +196,7 @@ public class LustListener implements Listener {
                         .normalize();
                 if (dirToTarget.dot(attacker.getLocation().getDirection()) > 0.5) { // Looking at shield
                     event.setDamage(event.getDamage() * 0.6); // -40% damage
-                    attacker.getWorld().spawnParticle(Particle.GLOW_SQUID_INK, attacker.getLocation().add(0, 1.5, 0),
-                            10, 0.2, 0.2, 0.2, 0);
+                    VisualUtil.playVisual(attacker.getLocation().add(0, 1.5, 0), null, CustomEnchant.CAPTIVATION, 1.0);
                 }
             }
         }
@@ -210,7 +223,7 @@ public class LustListener implements Listener {
                 }
                 if (nearest != null) {
                     mob.setTarget(nearest);
-                    mob.getWorld().spawnParticle(Particle.NOTE, mob.getLocation().add(0, 2, 0), 5, 0.5, 0.5, 0.5, 1);
+                    VisualUtil.playVisual(mob.getLocation().add(0, 2, 0), null, CustomEnchant.SIRENS_SONG, 1.0);
                 }
             }
 
@@ -224,8 +237,7 @@ public class LustListener implements Listener {
                         other.setTarget(mob);
                     }
                 });
-                mob.getWorld().spawnParticle(Particle.ANGRY_VILLAGER, mob.getLocation().add(0, 2, 0), 3, 0.5, 0.5, 0.5,
-                        0);
+                VisualUtil.playVisual(mob.getLocation().add(0, 2, 0), null, CustomEnchant.BETRAYAL, 1.0);
             }
         }
     }
@@ -244,12 +256,13 @@ public class LustListener implements Listener {
                     player.setHealth(Math.max(1.0, player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue() * 0.2));
                     player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 100, 0));
 
-                    Location origin = player.getLocation();
-                    Location tele = origin.clone().add((Math.random() - 0.5) * 10, 0, (Math.random() - 0.5) * 10);
+                    org.bukkit.Location origin = player.getLocation();
+                    org.bukkit.Location tele = origin.clone().add((Math.random() - 0.5) * 10, 0,
+                            (Math.random() - 0.5) * 10);
                     tele.setY(origin.getWorld().getHighestBlockYAt(tele) + 1);
                     player.teleport(tele);
 
-                    origin.getWorld().spawnParticle(Particle.EXPLOSION, origin.add(0, 1, 0), 3);
+                    VisualUtil.playVisual(origin, null, CustomEnchant.MASQUERADE, 1.0);
                     origin.getWorld().playSound(origin, Sound.ENTITY_ILLUSIONER_MIRROR_MOVE, 1f, 1f);
                     return;
                 }
@@ -263,22 +276,41 @@ public class LustListener implements Listener {
                 PdcUtil.setCooldown(player, new NamespacedKey(plugin, "veil_cd"), 20000L); // 20s cd
 
                 for (int i = 0; i < 3; i++) {
-                    ArmorStand clone = player.getWorld().spawn(player.getLocation(), ArmorStand.class, as -> {
-                        as.setInvisible(true);
-                        as.getEquipment().setArmorContents(player.getEquipment().getArmorContents());
-                        ItemStack head = new ItemStack(Material.PLAYER_HEAD);
-                        SkullMeta meta = (SkullMeta) head.getItemMeta();
-                        meta.setOwningPlayer(player);
-                        head.setItemMeta(meta);
-                        as.getEquipment().setHelmet(head);
-                    });
+                    int entityId = PacketEvents.getAPI().getServerManager().getVersion().getProtocolVersion() * 1000
+                            + (int) (Math.random() * 100000);
+                    UUID randomUUID = UUID.randomUUID();
+                    UserProfile profile = new UserProfile(randomUUID, player.getName());
 
-                    Vector randV = new Vector((Math.random() - 0.5) * 1.5, 0.5, (Math.random() - 0.5) * 1.5);
-                    clone.setVelocity(randV);
-                    Bukkit.getScheduler().runTaskLater(plugin, clone::remove, 60L); // 3 sec lifespan
+                    com.github.retrooper.packetevents.protocol.world.Location peSpawnLoc = SpigotConversionUtil
+                            .fromBukkitLocation(player.getLocation());
+
+                    WrapperPlayServerPlayerInfo infoPacket = new WrapperPlayServerPlayerInfo(
+                            WrapperPlayServerPlayerInfo.Action.ADD_PLAYER,
+                            new WrapperPlayServerPlayerInfo.PlayerData(null, profile, GameMode.SURVIVAL, 0));
+
+                    WrapperPlayServerSpawnPlayer spawnPacket = new WrapperPlayServerSpawnPlayer(entityId, randomUUID,
+                            peSpawnLoc);
+
+                    for (Player online : Bukkit.getOnlinePlayers()) {
+                        PacketEvents.getAPI().getPlayerManager().sendPacket(online, infoPacket);
+                        PacketEvents.getAPI().getPlayerManager().sendPacket(online, spawnPacket);
+                    }
+
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        WrapperPlayServerPlayerInfo removePacket = new WrapperPlayServerPlayerInfo(
+                                WrapperPlayServerPlayerInfo.Action.REMOVE_PLAYER,
+                                new WrapperPlayServerPlayerInfo.PlayerData(null, profile, null, 0));
+
+                        com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerDestroyEntities destroyPacket = new com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerDestroyEntities(
+                                entityId);
+
+                        for (Player online : Bukkit.getOnlinePlayers()) {
+                            PacketEvents.getAPI().getPlayerManager().sendPacket(online, removePacket);
+                            PacketEvents.getAPI().getPlayerManager().sendPacket(online, destroyPacket);
+                        }
+                    }, 60L); // 3 sec lifespan
                 }
-                player.getWorld().spawnParticle(Particle.CAMPFIRE_COSY_SMOKE, player.getLocation().add(0, 1, 0), 30,
-                        0.5, 0.5, 0.5, 0.1);
+                VisualUtil.playVisual(player.getLocation().add(0, 1, 0), null, CustomEnchant.ILLUSIONISTS_VEIL, 1.0);
             }
         }
     }
@@ -295,10 +327,7 @@ public class LustListener implements Listener {
                         event.setDamage(0); // Save pet
                         owner.damage(event.getFinalDamage()); // Transfer to owner
 
-                        pet.getWorld().spawnParticle(Particle.HEART, pet.getLocation().add(0, 1, 0), 5, 0.5, 0.5, 0.5,
-                                0);
-                        owner.getWorld().spawnParticle(Particle.DAMAGE_INDICATOR, owner.getLocation().add(0, 1, 0), 10,
-                                0.5, 0.5, 0.5, 0.2);
+                        VisualUtil.playVisual(owner.getLocation(), null, CustomEnchant.LOVERS_SACRIFICE, 1.0);
                         owner.sendMessage("§cYou intercepted a lethal blow meant for your pet!");
                     }
                 }

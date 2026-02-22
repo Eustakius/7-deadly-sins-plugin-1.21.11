@@ -3,11 +3,11 @@ package com.seven.deadlysins.features;
 import com.seven.deadlysins.SevenDeadlySins;
 import com.seven.deadlysins.registry.CustomEnchant;
 import com.seven.deadlysins.utils.PdcUtil;
+import com.seven.deadlysins.utils.VisualUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -68,7 +68,7 @@ public class GluttonyListener implements Listener {
                         AttributeInstance maxHp = le.getAttribute(Attribute.GENERIC_MAX_HEALTH);
                         if (maxHp != null) {
                             for (AttributeModifier mod : maxHp.getModifiers()) {
-                                if (mod.getKey().equals(acidicModKey))
+                                if (mod.getName().equals("acidic_bite_hp_down"))
                                     maxHp.removeModifier(mod);
                             }
                         }
@@ -79,8 +79,7 @@ public class GluttonyListener implements Listener {
                 Entity e = Bukkit.getEntity(entry.getKey());
                 if (e instanceof LivingEntity le && !le.isDead()) {
                     le.damage(1.0); // True damage
-                    le.getWorld().spawnParticle(Particle.ITEM_SLIME, le.getLocation().add(0, 1, 0), 5, 0.2, 0.2, 0.2,
-                            0);
+                    VisualUtil.playVisual(le.getLocation().add(0, 1, 0), null, CustomEnchant.ACIDIC_BITE, 1.0);
                 }
             }
 
@@ -94,7 +93,7 @@ public class GluttonyListener implements Listener {
                     AttributeInstance feastMaxHp = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
                     if (feastMaxHp != null) {
                         for (AttributeModifier mod : feastMaxHp.getModifiers()) {
-                            if (mod.getKey().equals(feastModKey))
+                            if (mod.getName().equals("feast_max_hp"))
                                 feastMaxHp.removeModifier(mod);
                         }
                     }
@@ -106,7 +105,7 @@ public class GluttonyListener implements Listener {
                 AttributeInstance toughness = player.getAttribute(Attribute.GENERIC_ARMOR_TOUGHNESS);
                 if (toughness != null) {
                     for (AttributeModifier mod : toughness.getModifiers()) {
-                        if (mod.getKey().equals(gorgingModKey))
+                        if (mod.getName().equals("gorging_toughness"))
                             toughness.removeModifier(mod);
                     }
 
@@ -134,10 +133,17 @@ public class GluttonyListener implements Listener {
             ItemStack sword = killer.getInventory().getItemInMainHand();
             int devourLevel = CustomEnchant.DEVOURERS_MAW.getLevel(sword);
             if (devourLevel > 0) {
-                killer.setFoodLevel(Math.min(20, killer.getFoodLevel() + (3 * devourLevel)));
-                killer.setSaturation(killer.getSaturation() + (3 * devourLevel));
-                killer.getWorld().spawnParticle(Particle.BLOCK, killer.getLocation().add(0, 1, 0), 10, 0.3, 0.3, 0.3,
-                        Bukkit.createBlockData(Material.BEEF));
+                int foodBonus = 3 * devourLevel;
+                // Synergy: Vampiric Rupture
+                NamespacedKey bleedKey = new NamespacedKey(plugin, "status_bleeding");
+                if (PdcUtil.isOnCooldown(event.getEntity(), bleedKey)) {
+                    foodBonus *= 2;
+                    killer.sendMessage("§c§lSYNERGY: §6Vampiric Rupture triggered!");
+                }
+
+                killer.setFoodLevel(Math.min(20, killer.getFoodLevel() + foodBonus));
+                killer.setSaturation(killer.getSaturation() + foodBonus);
+                VisualUtil.playVisual(killer.getLocation().add(0, 1, 0), null, CustomEnchant.DEVOURERS_MAW, 1.0);
                 killer.getWorld().playSound(killer.getLocation(), Sound.ENTITY_PLAYER_BURP, 1f, 1f);
             }
 
@@ -154,14 +160,14 @@ public class GluttonyListener implements Listener {
                         AttributeInstance maxHp = killer.getAttribute(Attribute.GENERIC_MAX_HEALTH);
                         if (maxHp != null) {
                             for (AttributeModifier mod : maxHp.getModifiers()) {
-                                if (mod.getKey().equals(feastModKey))
+                                if (mod.getName().equals("feast_max_hp"))
                                     maxHp.removeModifier(mod);
                             }
                             maxHp.addModifier(new AttributeModifier(feastModKey, stacks * 2.0,
                                     AttributeModifier.Operation.ADD_NUMBER));
                         }
-                        killer.getWorld().spawnParticle(Particle.SOUL_FIRE_FLAME, killer.getLocation().add(0, 1, 0), 10,
-                                0.3, 0.3, 0.3, 0.05);
+                        VisualUtil.playVisual(killer.getLocation().add(0, 1, 0), null, CustomEnchant.FEAST_OF_SOULS,
+                                1.0);
                     }
                 }
             }
@@ -176,7 +182,7 @@ public class GluttonyListener implements Listener {
         AttributeInstance maxHp = player.getAttribute(Attribute.GENERIC_MAX_HEALTH);
         if (maxHp != null) {
             for (AttributeModifier mod : maxHp.getModifiers()) {
-                if (mod.getKey().equals(feastModKey))
+                if (mod.getName().equals("feast_max_hp"))
                     maxHp.removeModifier(mod);
             }
         }
@@ -204,9 +210,8 @@ public class GluttonyListener implements Listener {
                             player.setHealth(Math.min(player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue(),
                                     player.getHealth() + 8.0)); // 4 hearts
 
-                            player.getWorld().spawnParticle(Particle.ITEM_SLIME, player.getLocation().add(0, 1, 0), 20,
-                                    0.5,
-                                    0.5, 0.5, 0);
+                            VisualUtil.playVisual(player.getLocation().add(0, 1, 0), null, CustomEnchant.CANNIBALIZE,
+                                    1.0);
                             player.getWorld().playSound(player.getLocation(), Sound.ENTITY_SLIME_SQUISH, 1f, 1f);
                         }
                     }
@@ -229,8 +234,7 @@ public class GluttonyListener implements Listener {
                 if (pitLevel > 0) {
                     event.setCancelled(true);
                     target.setSaturation((float) (target.getSaturation() + event.getDamage()));
-                    target.getWorld().spawnParticle(Particle.PORTAL, target.getLocation().add(0, 1, 0), 15, 0.3, 0.3,
-                            0.3, 0.5);
+                    VisualUtil.playVisual(target.getLocation().add(0, 1, 0), null, CustomEnchant.BOTTOMLESS_PIT, 1.0);
                     return;
                 }
             }
@@ -245,8 +249,7 @@ public class GluttonyListener implements Listener {
                         f.setTarget(attacker);
                     });
 
-                    target.getWorld().spawnParticle(Particle.BLOCK, target.getLocation(), 10, 0.5, 0.5, 0.5,
-                            Bukkit.createBlockData(Material.INFESTED_STONE));
+                    VisualUtil.playVisual(target.getLocation(), null, CustomEnchant.GLUTTONOUS_SWARM, 1.0);
                     Bukkit.getScheduler().runTaskLater(plugin, () -> {
                         if (!fish.isDead())
                             fish.remove();
@@ -267,16 +270,17 @@ public class GluttonyListener implements Listener {
                 if (maxHp != null) {
                     boolean hasMod = false;
                     for (AttributeModifier mod : maxHp.getModifiers()) {
-                        if (mod.getKey().equals(acidicModKey))
+                        if (mod.getName().equals("acidic_bite_hp_down"))
                             hasMod = true;
                     }
                     if (!hasMod) {
                         maxHp.addModifier(
-                                new AttributeModifier(acidicModKey, -4.0, AttributeModifier.Operation.ADD_NUMBER)); // Max
-                                                                                                                    // hp
-                                                                                                                    // drops
-                                                                                                                    // 2
-                                                                                                                    // hearts
+                                new AttributeModifier(acidicModKey, -4.0,
+                                        AttributeModifier.Operation.ADD_NUMBER)); // Max
+                        // hp
+                        // drops
+                        // 2
+                        // hearts
                     }
                 }
             }
@@ -297,7 +301,7 @@ public class GluttonyListener implements Listener {
                 Bukkit.getScheduler().runTaskTimer(plugin, task -> {
                     if (task.getTaskId() % 100 == 0)
                         task.cancel(); // roughly 5 seconds
-                    hitLoc.getWorld().spawnParticle(Particle.PORTAL, hitLoc, 10, 0.5, 0.5, 0.5, 0.1);
+                    VisualUtil.playVisual(hitLoc, null, CustomEnchant.BLACK_HOLE, 1.0);
                     hitLoc.getWorld().getNearbyEntities(hitLoc, 5, 5, 5).forEach(e -> {
                         if (e instanceof LivingEntity && !e.equals(shooter)) {
                             Vector pull = hitLoc.toVector().subtract(e.getLocation().toVector()).normalize()
@@ -323,19 +327,19 @@ public class GluttonyListener implements Listener {
                         totalStolen += 1.0;
 
                         // Particle beam back to shooter
-                        Vector dir = shooter.getEyeLocation().toVector().subtract(le.getLocation().toVector());
-                        double dist = dir.length();
-                        dir.normalize().multiply(0.5);
-                        Location beamLoc = le.getLocation().add(0, 1, 0).clone();
-                        for (double i = 0; i < dist; i += 0.5) {
-                            beamLoc.add(dir);
-                            le.getWorld().spawnParticle(Particle.DUST, beamLoc, 1, 0, 0, 0, 0,
-                                    new Particle.DustOptions(org.bukkit.Color.RED, 0.5f));
-                        }
+                        Vector beamDir = shooter.getEyeLocation().toVector().subtract(le.getLocation().toVector());
+                        VisualUtil.playVisual(le.getLocation().add(0, 1, 0), beamDir, CustomEnchant.LEECHING_PLAGUE,
+                                1.0);
                     }
                 }
 
                 if (totalStolen > 0) {
+                    // Synergy: Vampiric Rupture
+                    NamespacedKey bleedKey = new NamespacedKey(plugin, "status_bleeding");
+                    if (PdcUtil.isOnCooldown(event.getHitEntity() != null ? event.getHitEntity() : arrow, bleedKey)) {
+                        totalStolen *= 1.5;
+                    }
+
                     shooter.setHealth(Math.min(shooter.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue(),
                             shooter.getHealth() + totalStolen));
                 }
@@ -355,9 +359,8 @@ public class GluttonyListener implements Listener {
             if (bName.contains("OBSIDIAN") || bName.contains("DEEPSLATE")) {
                 player.setHealth(Math.min(player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue(),
                         player.getHealth() + 0.5));
-                event.getBlock().getWorld().spawnParticle(Particle.BLOCK,
-                        event.getBlock().getLocation().add(0.5, 0.5, 0.5), 10, 0.2, 0.2, 0.2,
-                        Bukkit.createBlockData(event.getBlock().getType()));
+                VisualUtil.playVisual(event.getBlock().getLocation().add(0.5, 0.5, 0.5), null, CustomEnchant.OMNIVORE,
+                        1.0);
             }
         }
     }

@@ -8,6 +8,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import me.clip.placeholderapi.PlaceholderAPI;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -73,9 +74,17 @@ public class SinsCommand implements CommandExecutor, TabCompleter {
                 enchant.apply(book, level);
 
                 target.getInventory().addItem(book);
-                sender.sendMessage(
-                        "§aGave " + target.getName() + " a " + enchant.getDisplayName() + " " + level + " book.");
-                target.sendMessage("§aYou received a " + enchant.getDisplayName() + " " + level + " book.");
+                String senderMsg = "§aGave " + target.getName() + " a " + enchant.getDisplayName() + " " + level
+                        + " book.";
+                String targetMsg = "§aYou received a " + enchant.getDisplayName() + " " + level + " book.";
+
+                if (sender instanceof Player senderPlayer) {
+                    senderMsg = PlaceholderAPI.setPlaceholders(senderPlayer, senderMsg);
+                }
+                targetMsg = PlaceholderAPI.setPlaceholders(target, targetMsg);
+
+                sender.sendMessage(senderMsg);
+                target.sendMessage(targetMsg);
             } else {
                 ItemStack item = target.getInventory().getItemInMainHand();
                 if (item.getType().isAir()) {
@@ -84,10 +93,18 @@ public class SinsCommand implements CommandExecutor, TabCompleter {
                 }
 
                 enchant.apply(item, level);
-                sender.sendMessage("§aSuccessfully applied " + enchant.getDisplayName() + " " + level + " to "
-                        + target.getName() + "'s held item.");
-                target.sendMessage(
-                        "§aYour held item was enchanted with " + enchant.getDisplayName() + " " + level + ".");
+                String senderMsg = "§aSuccessfully applied " + enchant.getDisplayName() + " " + level + " to "
+                        + target.getName() + "'s held item.";
+                String targetMsg = "§aYour held item was enchanted with " + enchant.getDisplayName() + " " + level
+                        + ".";
+
+                if (sender instanceof Player senderPlayer) {
+                    senderMsg = PlaceholderAPI.setPlaceholders(senderPlayer, senderMsg);
+                }
+                targetMsg = PlaceholderAPI.setPlaceholders(target, targetMsg);
+
+                sender.sendMessage(senderMsg);
+                target.sendMessage(targetMsg);
             }
             return true;
         }

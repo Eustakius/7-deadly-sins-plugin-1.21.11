@@ -1,9 +1,14 @@
 name: SevenDeadlySins
-version: '1.0'
+version: '1.0.3'
 main: com.seven.deadlysins.SevenDeadlySins
 api-version: '1.21'
+depend: [packetevents, PlaceholderAPI, ParticleNativeAPI]
 commands:
   7sins:
     description: Apply Custom Enchantments
-    usage: /<command> give <player> <enchant> [level]
-    aliases: [sins]
+    permission: 7sins.admin
+    usage: /7sins <enchant> <level> or /7sins book <enchant> <level>
+permissions:
+  7sins.admin:
+    description: Allows use of /7sins command
+    default: op

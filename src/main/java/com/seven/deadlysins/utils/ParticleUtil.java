@@ -1,69 +1,65 @@
 package com.seven.deadlysins.utils;
 
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.World;
-import org.bukkit.util.Vector;
+import org.bukkit.inventory.ItemStack;
 
+/**
+ * Robust particle utility to prevent IllegalArgumentException (missing data)
+ * and sanitize coordinates (preventing NaN).
+ */
 public class ParticleUtil {
 
     /**
-     * Draws a pair of blood-red wings on the target.
+     * Spawns a particle safely, ensuring all required data is provided
+     * based on the 1.21.1 API expectations.
      */
-    public static void drawBloodEagleWings(Location loc) {
+    public static void spawnSafe(Location loc, Particle particle, int count, double ox, double oy, double oz, double extra, Object data) {
+        if (loc == null || Double.isNaN(loc.getX()) || Double.isNaN(loc.getY()) || Double.isNaN(loc.getZ())) return;
         World world = loc.getWorld();
-        if (world == null)
-            return;
+        if (world == null) return;
 
-        Vector direction = loc.getDirection().setY(0).normalize();
-        Vector right = new Vector(-direction.getZ(), 0, direction.getX()).normalize();
-        Vector up = new Vector(0, 1, 0);
+        Object finalData = validateData(particle, data);
 
-        // Simple V-shaped wing logic
-        for (double i = 0; i < 2.5; i += 0.2) {
-            for (double j = -1; j < 1; j += 0.2) {
-                // Left Wing
-                Location leftWing = loc.clone().add(up.clone().multiply(1.5 + j)).add(right.clone().multiply(-1.5 * i))
-                        .add(direction.clone().multiply(-0.5 * i));
-                world.spawnParticle(Particle.DUST, leftWing, 1, 0, 0, 0, 0,
-                        new Particle.DustOptions(org.bukkit.Color.RED, 1.5f));
-
-                // Right wing
-                Location rightWing = loc.clone().add(up.clone().multiply(1.5 + j)).add(right.clone().multiply(1.5 * i))
-                        .add(direction.clone().multiply(-0.5 * i));
-                world.spawnParticle(Particle.DUST, rightWing, 1, 0, 0, 0, 0,
-                        new Particle.DustOptions(org.bukkit.Color.RED, 1.5f));
+        try {
+            if (finalData != null) {
+                world.spawnParticle(particle, loc, count, ox, oy, oz, extra, finalData);
+            } else {
+                world.spawnParticle(particle, loc, count, ox, oy, oz, extra);
+            }
+        } catch (Exception e) {
+            // Final fallback to no-data if specified data failed
+            if (finalData != null) {
+                try {
+                    world.spawnParticle(particle, loc, count, ox, oy, oz, extra);
+                } catch (Exception ignored) {}
             }
         }
     }
 
-    /**
-     * Spawns a 3x3 fiery zone of particles.
-     */
-    public static void drawHellfireZone(Location center, double radius) {
-        World world = center.getWorld();
-        if (world == null)
-            return;
+    private static Object validateData(Particle particle, Object data) {
+        Class<?> dataType = particle.getDataType();
 
-        for (double x = -radius; x <= radius; x += 0.5) {
-            for (double z = -radius; z <= radius; z += 0.5) {
-                if (Math.random() > 0.5) {
-                    world.spawnParticle(Particle.FLAME, center.clone().add(x, 0.2, z), 2, 0.1, 0.1, 0.1, 0.02);
-                }
-            }
+        // If no data is required, return null
+        if (dataType == Void.class) return null;
+
+        // If correct data is already provided, return it
+        if (data != null && dataType.isInstance(data)) return data;
+
+        // Provide defaults for common required data types
+        if (dataType == Particle.DustOptions.class) {
+            return new Particle.DustOptions(Color.WHITE, 1.0f);
         }
-    }
-
-    public static void spawnCircle(Location center, Particle particle, double radius, int points) {
-        World world = center.getWorld();
-        if (world == null)
-            return;
-
-        for (int i = 0; i < points; i++) {
-            double angle = 2 * Math.PI * i / points;
-            double x = Math.cos(angle) * radius;
-            double z = Math.sin(angle) * radius;
-            world.spawnParticle(particle, center.clone().add(x, 0, z), 1, 0, 0, 0, 0);
+        if (dataType == Color.class) {
+            return Color.WHITE;
         }
+        if (dataType == ItemStack.class) {
+            return null; // ITEM particles MUST have an ItemStack, handled by the caller or nullified
+        }
+        // org.bukkit.block.data.BlockData usually required for BLOCK/FALLING_DUST
+        
+        return data; 
     }
 }

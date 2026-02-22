@@ -2,15 +2,11 @@ package com.seven.deadlysins.features;
 
 import com.seven.deadlysins.SevenDeadlySins;
 import com.seven.deadlysins.registry.CustomEnchant;
-import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.LootGenerateEvent;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.List;
 import java.util.Random;
@@ -59,7 +55,7 @@ public class LootGenerationListener implements Listener {
             }
 
             // 5. Create the "Lost Tome" (Enchanted Book with our custom PDC)
-            ItemStack tome = createCustomEnchantBook(selected, level);
+            ItemStack tome = CustomEnchant.createBook(selected, level);
 
             // 6. Inject it into the chest's loot drops
             List<ItemStack> drops = event.getLoot();
@@ -69,16 +65,16 @@ public class LootGenerationListener implements Listener {
     }
 
     private double getChanceForLootTable(String path) {
-        // High Tier / Dangerous structures (5% chance)
+        // High Tier / Dangerous structures (15% chance)
         if (path.contains("ancient_city") ||
                 path.contains("end_city_treasure") ||
                 path.contains("bastion_treasure") ||
                 path.contains("stronghold_library") ||
                 path.contains("woodland_mansion")) {
-            return 0.05; // 5%
+            return 0.15; // 15%
         }
 
-        // Mid Tier structures (2% chance)
+        // Mid Tier structures (7% chance)
         if (path.contains("nether_bridge") ||
                 path.contains("bastion_other") ||
                 path.contains("bastion_bridge") ||
@@ -86,35 +82,18 @@ public class LootGenerationListener implements Listener {
                 path.contains("desert_pyramid") ||
                 path.contains("igloo_chest") ||
                 path.contains("jungle_temple")) {
-            return 0.02; // 2%
+            return 0.07; // 7%
         }
 
-        // Low Tier / Common structures (0.5% chance)
+        // Low Tier / Common structures (2.5% chance)
         if (path.contains("village") ||
                 path.contains("abandoned_mineshaft") ||
                 path.contains("shipwreck") ||
                 path.contains("ruined_portal")) {
-            return 0.005; // 0.5%
+            return 0.025; // 2.5%
         }
 
         return 0.0; // No chance for random/other loot tables
     }
 
-    private ItemStack createCustomEnchantBook(CustomEnchant enchant, int level) {
-        ItemStack book = new ItemStack(Material.ENCHANTED_BOOK);
-        ItemMeta meta = book.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName("§6Lost Tome: §e" + enchant.getDisplayName());
-            // Add a dummy vanilla enchantment just to ensure the glowing effect
-            // is natively preserved consistently by the client
-            meta.addEnchant(Enchantment.UNBREAKING, 1, true);
-            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
-            book.setItemMeta(meta);
-        }
-
-        // Use our standard API to inject the PDC and Lore
-        enchant.apply(book, level);
-
-        return book;
-    }
 }
