@@ -1,0 +1,39 @@
+
+> Task :compileJava FAILED
+D:\plugins\7DeadlySins\src\main\java\com\seven\deadlysins\features\AnvilListener.java:69: warning: [removal] getRenameText() in AnvilInventory has been deprecated and marked for removal
+        if (inv.getRenameText() != null && !inv.getRenameText().isEmpty()) {
+               ^
+D:\plugins\7DeadlySins\src\main\java\com\seven\deadlysins\features\AnvilListener.java:69: warning: [removal] getRenameText() in AnvilInventory has been deprecated and marked for removal
+        if (inv.getRenameText() != null && !inv.getRenameText().isEmpty()) {
+                                               ^
+D:\plugins\7DeadlySins\src\main\java\com\seven\deadlysins\features\AnvilListener.java:72: warning: [removal] getRenameText() in AnvilInventory has been deprecated and marked for removal
+                resMeta.setDisplayName(inv.getRenameText());
+                                          ^
+D:\plugins\7DeadlySins\src\main\java\com\seven\deadlysins\features\AnvilListener.java:83: warning: [removal] getRepairCost() in AnvilInventory has been deprecated and marked for removal
+        int finalCost = inv.getRepairCost() + customCost;
+                           ^
+D:\plugins\7DeadlySins\src\main\java\com\seven\deadlysins\features\AnvilListener.java:92: warning: [removal] setRepairCost(int) in AnvilInventory has been deprecated and marked for removal
+                inv.setRepairCost(fc);
+                   ^
+D:\plugins\7DeadlySins\src\main\java\com\seven\deadlysins\features\LootGenerationListener.java:110: error: cannot find symbol
+            meta.addEnchant(Enchantment.DURABILITY, 1, true);
+                                       ^
+  symbol:   variable DURABILITY
+  location: class Enchantment
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+1 error
+5 warnings
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileJava'.
+> Compilation failed; see the compiler error output for details.
+
+* Try:
+> Run with --info option to get more log output.
+> Run with --scan to get full insights.
+
+BUILD FAILED in 2s
+1 actionable task: 1 executed
