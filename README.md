@@ -17,7 +17,10 @@ Installing the plugin is incredibly simple as it is completely standalone!
 2. Ensure you have the following **Core Dependencies** installed on your server:
    - [**PlaceholderAPI**](https://www.spigotmc.org/resources/placeholderapi.6245/) (Required for dynamic text)
    - [**PacketEvents**](https://github.com/retrooper/packetevents) (Required for advanced visual effects & camera manipulation)
+<<<<<<< HEAD
    - [**ParticleNativeAPI**](https://github.com/Fierioziy/ParticleNativeAPI) (Required for high-performance cross-version particle effects)
+=======
+>>>>>>> 49754f5cc14c06d2467d4ed87280bd12e4fa137e
 3. Drag and drop the `.jar` file into your Minecraft server's `plugins` folder.
 4. Restart or reload the server.
 5. Finished! 
